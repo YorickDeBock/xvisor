@@ -41,6 +41,7 @@
 #define IDLE_VCPU_TIMESLICE 	(CONFIG_IDLE_TSLICE_SECS * 1000000000ULL)
 #define IDLE_VCPU_DEADLINE	(IDLE_VCPU_TIMESLICE * 10)
 #define IDLE_VCPU_PERIODICITY	(IDLE_VCPU_DEADLINE * 10)
+#define RTOS_VCPU           CONFIG_RTOS_CORE
 
 #define SAMPLE_EVENT_PERIOD	(CONFIG_IDLE_PERIOD_SECS * 1000000000ULL)
 
@@ -64,6 +65,7 @@ struct vmm_scheduler_ctrl {
 	u64 sample_idle_last_ns;
 	u64 sample_irq_ns;
 	u64 sample_irq_last_ns;
+	u8 rtos_vcpu;
 };
 
 static DEFINE_PER_CPU(struct vmm_scheduler_ctrl, sched);
@@ -227,7 +229,10 @@ dequeue_again:
 	next->state_tstamp = tstamp;
 	schedp->current_vcpu = next;
 	schedp->current_vcpu_irq_ns = schedp->irq_process_ns;
-	vmm_timer_event_start(&schedp->ev, next_time_slice);
+
+    if(vmm_smp_processor_id() != schedp->rtos_vcpu || !next->is_normal) {
+        vmm_timer_event_start(&schedp->ev, next_time_slice);
+    }
 
 	if (next != current) {
 		vmm_write_unlock_irqrestore_lite(&next->sched_lock, nf);
@@ -970,6 +975,7 @@ int __cpuinit vmm_scheduler_init(void)
 	schedp->sample_irq_ns = 0;
 	schedp->sample_irq_last_ns = 0;
 
+	schedp->rtos_vcpu = RTOS_VCPU;
 	/* Mark this CPU online
 	 * Note: must be done before creating IDLE VCPU and
 	 * setting affinity

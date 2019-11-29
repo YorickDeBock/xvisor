@@ -26,6 +26,7 @@
 #include <vmm_types.h>
 #include <vmm_compiler.h>
 #include <vmm_devtree.h>
+#include <vmm_smp.h>
 
 /* nodeid table based initfn callback */
 typedef int (*vmm_initfn_t)(struct vmm_devtree_node *);

@@ -1359,6 +1359,8 @@ struct vmm_guest *vmm_manager_guest_create(struct vmm_devtree_node *gnode)
 			}
 		} else {
 			memcpy(&mask, cpu_online_mask, sizeof(mask));
+			if (VMM_RTOS_CORE != -1)
+			    vmm_cpumask_clear_cpu(VMM_RTOS_CORE, &mask);
 		}
 
 		/* Acquire manager lock */

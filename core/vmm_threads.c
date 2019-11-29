@@ -327,6 +327,8 @@ struct vmm_thread *vmm_threads_create_rt(const char *thread_name,
 	vmm_cpumask_and(&mask, &thctrl.default_affinity, cpu_online_mask);
 	if (!vmm_cpumask_weight(&mask)) {
 		memcpy(&mask, cpu_online_mask, sizeof(mask));
+        if (VMM_RTOS_CORE != -1)
+            vmm_cpumask_clear_cpu(VMM_RTOS_CORE, &mask);
 	}
 
 	/* Create thread structure instance */
