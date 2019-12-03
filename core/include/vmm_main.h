@@ -26,6 +26,9 @@
 #include <vmm_types.h>
 #include <vmm_compiler.h>
 
+#define VMM_RTOS_CORE               CONFIG_RTOS_CORE
+
+
 /** Hang hypervisor */
 void __noreturn vmm_hang(void);
 

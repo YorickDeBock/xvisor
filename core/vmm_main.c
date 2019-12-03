@@ -218,6 +218,12 @@ static void system_postinit_work(struct vmm_work *work)
 	}
 	vmm_init_printf("brought-up %d CPUs\n", vmm_num_online_cpus());
 
+	/*Checking for RTOS vcpu*/
+	if( VMM_RTOS_CORE != -1 && (VMM_RTOS_CORE >= CONFIG_CPU_COUNT || !vmm_cpu_online(VMM_RTOS_CORE))){
+		vmm_init_printf("RTOS CPU selected, but CPU is not available or online.\n");
+		goto fail;
+	}
+
 	/* Free init memory */
 	freed = vmm_host_free_initmem();
 	vmm_init_printf("freeing init memory %dK\n", freed);
@@ -270,6 +276,11 @@ static void system_postinit_work(struct vmm_work *work)
 
 	/* Set system init done flag */
 	sys_init_done = TRUE;
+
+	return;
+
+	fail:
+		vmm_panic("%s: error\n", __func__);
 }
 
 static void system_init_work(struct vmm_work *work)

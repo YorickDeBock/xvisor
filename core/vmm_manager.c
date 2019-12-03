@@ -1286,17 +1286,22 @@ struct vmm_guest *vmm_manager_guest_create(struct vmm_devtree_node *gnode) {
     vmm_manager_unlock();
 
     vsnode = vmm_devtree_getchild(gnode, VMM_DEVTREE_GUEST_INFO_ATTR_NAME);
+
     if (vsnode) {
         if (vmm_devtree_getattr(vsnode, VMM_DEVTREE_TYPE_VM_ATTR_NAME)) {
             if (vmm_devtree_read_string(vsnode, VMM_DEVTREE_TYPE_VM_ATTR_NAME, &str) == VMM_OK) {
-                if (!strcmp(str, "rtos"))
+                if (!strcmp(str, "rtos")){
                     rtos = 1;
-                vmm_printf("Guest type %s", str);
+                    if( VMM_RTOS_CORE == -1){
+						vmm_printf("%s: RTOS guest detected, but no RTOS VCPU selected in the CONFIG\n", __func__);
+						goto fail_destroy_guest;
+                    }
+                }
             }
         }
     }
 
-	vsnode = vmm_devtree_getchild(gnode, VMM_DEVTREE_VCPUS_NODE_NAME);
+    vsnode = vmm_devtree_getchild(gnode, VMM_DEVTREE_VCPUS_NODE_NAME);
 	if (!vsnode) {
 		vmm_printf("%s: vcpus node not found for Guest %s\n",
 			   __func__, gnode->name);
