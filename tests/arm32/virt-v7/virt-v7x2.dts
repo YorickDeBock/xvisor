@@ -13,6 +13,10 @@
 		shmem0 = &SHMEM0;
 	};
 
+    guest_info {
+        type = "rtos"; /* rtos or normal */
+    };
+
 	vcpus {
 		vcpu0 {
 			device_type = "vcpu";

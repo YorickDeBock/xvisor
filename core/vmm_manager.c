@@ -1189,101 +1189,112 @@ int vmm_manager_guest_shutdown_request(struct vmm_guest *guest)
 				manager_shutdown_request, NULL);
 }
 
-struct vmm_guest *vmm_manager_guest_create(struct vmm_devtree_node *gnode)
-{
-	u32 val, vnum, gnum;
-	const char *str;
-	irq_flags_t flags;
-	struct vmm_devtree_node *vsnode;
-	struct vmm_devtree_node *vnode;
-	struct vmm_guest *guest = NULL;
-	struct vmm_vcpu *vcpu = NULL;
+struct vmm_guest *vmm_manager_guest_create(struct vmm_devtree_node *gnode) {
+    u32 val, vnum, gnum;
+    const char *str;
+    u8 rtos = 0;
+    irq_flags_t flags;
+    struct vmm_devtree_node *vsnode;
+    struct vmm_devtree_node *vnode;
+    struct vmm_guest *guest = NULL;
+    struct vmm_vcpu *vcpu = NULL;
 
-	/* Sanity checks */
-	if (!gnode) {
-		return NULL;
-	}
-	if (vmm_devtree_read_string(gnode,
-				VMM_DEVTREE_DEVICE_TYPE_ATTR_NAME, &str)) {
-		return NULL;
-	}
-	if (strcmp(str, VMM_DEVTREE_DEVICE_TYPE_VAL_GUEST) != 0) {
-		return NULL;
-	}
+    /* Sanity checks */
+    if (!gnode) {
+        return NULL;
+    }
+    if (vmm_devtree_read_string(gnode,
+                                VMM_DEVTREE_DEVICE_TYPE_ATTR_NAME, &str)) {
+        return NULL;
+    }
+    if (strcmp(str, VMM_DEVTREE_DEVICE_TYPE_VAL_GUEST) != 0) {
+        return NULL;
+    }
 
-	/* Acquire manager lock */
-	vmm_manager_lock();
+    /* Acquire manager lock */
+    vmm_manager_lock();
 
-	/* Ensure guest node uniqueness */
-	list_for_each_entry(guest, &mngr.guest_list, head) {
-		if ((guest->node == gnode) ||
-		    (strcmp(guest->name, gnode->name) == 0)) {
-			vmm_manager_unlock();
-			vmm_printf("%s: Duplicate Guest %s detected\n",
-					__func__, gnode->name);
-			return NULL;
-		}
-	}
+    /* Ensure guest node uniqueness */
+    list_for_each_entry(guest, &mngr.guest_list, head)
+    {
+        if ((guest->node == gnode) ||
+            (strcmp(guest->name, gnode->name) == 0)) {
+            vmm_manager_unlock();
+            vmm_printf("%s: Duplicate Guest %s detected\n",
+                       __func__, gnode->name);
+            return NULL;
+        }
+    }
 
-	/* Find next available guest instance */
-	for (gnum = 0; gnum < CONFIG_MAX_GUEST_COUNT; gnum++) {
-		if (mngr.guest_avail_array[gnum]) {
-			guest = &mngr.guest_array[gnum];
-			mngr.guest_avail_array[guest->id] = FALSE;
-			break;
-		}
-	}
-	if (!guest) {
-		vmm_manager_unlock();
-		vmm_printf("%s: No available Guest instance found\n",
-			   __func__);
-		return NULL;
-	}
+    /* Find next available guest instance */
+    for (gnum = 0; gnum < CONFIG_MAX_GUEST_COUNT; gnum++) {
+        if (mngr.guest_avail_array[gnum]) {
+            guest = &mngr.guest_array[gnum];
+            mngr.guest_avail_array[guest->id] = FALSE;
+            break;
+        }
+    }
+    if (!guest) {
+        vmm_manager_unlock();
+        vmm_printf("%s: No available Guest instance found\n",
+                   __func__);
+        return NULL;
+    }
 
-	/* Add guest instance to guest list */
-	list_add_tail(&guest->head, &mngr.guest_list);
+    /* Add guest instance to guest list */
+    list_add_tail(&guest->head, &mngr.guest_list);
 
-	/* Increment guest count */
-	mngr.guest_count++;
+    /* Increment guest count */
+    mngr.guest_count++;
 
-	/* Initialize guest instance */
-	strlcpy(guest->name, gnode->name, sizeof(guest->name));
-	vmm_devtree_ref_node(gnode);
-	guest->node = gnode;
+    /* Initialize guest instance */
+    strlcpy(guest->name, gnode->name, sizeof(guest->name));
+    vmm_devtree_ref_node(gnode);
+    guest->node = gnode;
 #ifdef CONFIG_CPU_BE
-	guest->is_big_endian = TRUE;
+    guest->is_big_endian = TRUE;
 #else
-	guest->is_big_endian = FALSE;
+    guest->is_big_endian = FALSE;
 #endif
-	guest->reset_count = 0;
-	guest->reset_tstamp = vmm_timer_timestamp();
-	INIT_SPIN_LOCK(&guest->req_lock);
-	INIT_LIST_HEAD(&guest->req_list);
-	INIT_RW_LOCK(&guest->vcpu_lock);
-	guest->vcpu_count = 0;
-	INIT_LIST_HEAD(&guest->vcpu_list);
-	memset(&guest->aspace, 0, sizeof(guest->aspace));
-	guest->aspace.initialized = FALSE;
-	INIT_RW_LOCK(&guest->aspace.reg_iotree_lock);
-	INIT_LIST_HEAD(&guest->aspace.reg_ioprobe_list);
-	guest->aspace.reg_iotree = RB_ROOT;
-	INIT_RW_LOCK(&guest->aspace.reg_memtree_lock);
-	INIT_LIST_HEAD(&guest->aspace.reg_memprobe_list);
-	guest->aspace.reg_memtree = RB_ROOT;
-	guest->arch_priv = NULL;
+    guest->reset_count = 0;
+    guest->reset_tstamp = vmm_timer_timestamp();
+    INIT_SPIN_LOCK(&guest->req_lock);
+    INIT_LIST_HEAD(&guest->req_list);
+    INIT_RW_LOCK(&guest->vcpu_lock);
+    guest->vcpu_count = 0;
+    INIT_LIST_HEAD(&guest->vcpu_list);
+    memset(&guest->aspace, 0, sizeof(guest->aspace));
+    guest->aspace.initialized = FALSE;
+    INIT_RW_LOCK(&guest->aspace.reg_iotree_lock);
+    INIT_LIST_HEAD(&guest->aspace.reg_ioprobe_list);
+    guest->aspace.reg_iotree = RB_ROOT;
+    INIT_RW_LOCK(&guest->aspace.reg_memtree_lock);
+    INIT_LIST_HEAD(&guest->aspace.reg_memprobe_list);
+    guest->aspace.reg_memtree = RB_ROOT;
+    guest->arch_priv = NULL;
 
-	/* Determine guest endianness from guest node */
-	if (vmm_devtree_read_string(gnode,
-			VMM_DEVTREE_ENDIANNESS_ATTR_NAME, &str) == VMM_OK) {
-		if (!strcmp(str, VMM_DEVTREE_ENDIANNESS_VAL_LITTLE)) {
-			guest->is_big_endian = FALSE;
-		} else if (!strcmp(str, VMM_DEVTREE_ENDIANNESS_VAL_BIG)) {
-			guest->is_big_endian = TRUE;
-		}
-	}
+    /* Determine guest endianness from guest node */
+    if (vmm_devtree_read_string(gnode,
+                                VMM_DEVTREE_ENDIANNESS_ATTR_NAME, &str) == VMM_OK) {
+        if (!strcmp(str, VMM_DEVTREE_ENDIANNESS_VAL_LITTLE)) {
+            guest->is_big_endian = FALSE;
+        } else if (!strcmp(str, VMM_DEVTREE_ENDIANNESS_VAL_BIG)) {
+            guest->is_big_endian = TRUE;
+        }
+    }
+    /* Release manager lock */
+    vmm_manager_unlock();
 
-	/* Release manager lock */
-	vmm_manager_unlock();
+    vsnode = vmm_devtree_getchild(gnode, VMM_DEVTREE_GUEST_INFO_ATTR_NAME);
+    if (vsnode) {
+        if (vmm_devtree_getattr(vsnode, VMM_DEVTREE_TYPE_VM_ATTR_NAME)) {
+            if (vmm_devtree_read_string(vsnode, VMM_DEVTREE_TYPE_VM_ATTR_NAME, &str) == VMM_OK) {
+                if (!strcmp(str, "rtos"))
+                    rtos = 1;
+                vmm_printf("Guest type %s", str);
+            }
+        }
+    }
 
 	vsnode = vmm_devtree_getchild(gnode, VMM_DEVTREE_VCPUS_NODE_NAME);
 	if (!vsnode) {
@@ -1322,7 +1333,12 @@ struct vmm_guest *vmm_manager_guest_create(struct vmm_devtree_node *gnode)
 		}
 
 		/* Setup VCPU affinity mask */
-		if (vmm_devtree_getattr(vnode,
+		if (rtos) {
+            mask = VMM_CPU_MASK_NONE;
+            if(VMM_RTOS_CORE != -1)
+                vmm_cpumask_set_cpu(VMM_RTOS_CORE, &mask);
+        }
+		else if (vmm_devtree_getattr(vnode,
 				VMM_DEVTREE_VCPU_AFFINITY_ATTR_NAME)) {
 			/* Start with empty affinity mask */
 			mask = VMM_CPU_MASK_NONE;
@@ -1349,7 +1365,10 @@ struct vmm_guest *vmm_manager_guest_create(struct vmm_devtree_node *gnode)
 				index++;
 			}
 
-			/* If affinity mask turns-out to be empty then fail */
+			if(!rtos && VMM_RTOS_CORE != -1)
+                vmm_cpumask_clear_cpu(VMM_RTOS_CORE, &mask);
+
+            /* If affinity mask turns-out to be empty then fail */
 			if (vmm_cpumask_weight(&mask) < 1) {
 				vmm_printf("%s: Empty affinity mask\n"
 					   "for Guest %s VCPU %s\n", __func__,

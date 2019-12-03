@@ -97,6 +97,8 @@
 #define VMM_DEVTREE_ENDIANNESS_VAL_LITTLE	"little"
 #define VMM_DEVTREE_START_PC_ATTR_NAME		"start_pc"
 #define VMM_DEVTREE_PRIORITY_ATTR_NAME		"priority"
+#define VMM_DEVTREE_GUEST_INFO_ATTR_NAME    "guest_info"
+#define VMM_DEVTREE_TYPE_VM_ATTR_NAME       "type"
 #define VMM_DEVTREE_TIME_SLICE_ATTR_NAME	"time_slice"
 #define VMM_DEVTREE_DEADLINE_ATTR_NAME		"deadline"
 #define VMM_DEVTREE_PERIODICITY_ATTR_NAME	"periodicity"
