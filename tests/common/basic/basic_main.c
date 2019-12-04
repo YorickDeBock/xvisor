@@ -775,6 +775,7 @@ void basic_main(void)
 	basic_puts(" Basic Firmware\n\n");
 
 	boot_delay = arch_board_boot_delay();
+	boot_delay = 5;
 	if (boot_delay == 0xffffffff) {
 		basic_puts("autoboot: disabled\n\n");
 	} else {
