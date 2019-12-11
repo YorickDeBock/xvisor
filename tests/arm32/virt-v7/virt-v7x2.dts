@@ -180,7 +180,7 @@
 			device_type = "alloced_ram";
 		};
 
-		SHMEM0: shmem {
+		SHMEM0: shmem0 {
 			manifest_type = "real";
 			address_type = "memory";
 			guest_physical_addr = <0x38000000>;
